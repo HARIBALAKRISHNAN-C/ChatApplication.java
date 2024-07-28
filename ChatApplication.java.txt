@@ -1,0 +1,138 @@
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+
+// Observer Interface
+interface Observer {
+    void update(String message);
+}
+
+// ChatRoom class
+class ChatRoom {
+    private String roomId;
+    private List<Observer> users;
+    private List<String> messages;
+
+    public ChatRoom(String roomId) {
+        this.roomId = roomId;
+        this.users = new ArrayList<>();
+        this.messages = new ArrayList<>();
+    }
+
+    public String getRoomId() {
+        return roomId;
+    }
+
+    public void join(Observer user) {
+        users.add(user);
+        notifyUser(user, "Welcome to " + roomId + " chat room.");
+        notifyAllUsers(user.toString() + " has joined the chat.");
+    }
+
+    public void leave(Observer user) {
+        users.remove(user);
+        notifyAllUsers(user.toString() + " has left the chat.");
+    }
+
+    public void sendMessage(String message) {
+        messages.add(message);
+        notifyAllUsers(message);
+    }
+
+    private void notifyAllUsers(String message) {
+        for (Observer user : users) {
+            user.update(message);
+        }
+    }
+
+    private void notifyUser(Observer user, String message) {
+        user.update(message);
+    }
+
+    public List<String> getMessages() {
+        return messages;
+    }
+}
+
+// User class
+class User implements Observer {
+    private String username;
+
+    public User(String username) {
+        this.username = username;
+    }
+
+    @Override
+    public void update(String message) {
+        System.out.println("[" + username + "]: " + message);
+    }
+
+    @Override
+    public String toString() {
+        return username;
+    }
+}
+
+// Singleton Pattern Implementation for ChatRoomManager
+class ChatRoomManager {
+    private static ChatRoomManager instance;
+    private Map<String, ChatRoom> chatRooms;
+
+    private ChatRoomManager() {
+        chatRooms = new HashMap<>();
+    }
+
+    public static synchronized ChatRoomManager getInstance() {
+        if (instance == null) {
+            instance = new ChatRoomManager();
+        }
+        return instance;
+    }
+
+    public ChatRoom getChatRoom(String roomId) {
+        return chatRooms.computeIfAbsent(roomId, ChatRoom::new);
+    }
+}
+
+// Adapter Pattern Implementation
+interface ChatAdapter {
+    void connect(String roomId, User user);
+    void sendMessage(String roomId, String message);
+}
+
+class ConsoleChatAdapter implements ChatAdapter {
+    private ChatRoomManager chatRoomManager;
+
+    public ConsoleChatAdapter() {
+        this.chatRoomManager = ChatRoomManager.getInstance();
+    }
+
+    @Override
+    public void connect(String roomId, User user) {
+        ChatRoom chatRoom = chatRoomManager.getChatRoom(roomId);
+        chatRoom.join(user);
+    }
+
+    @Override
+    public void sendMessage(String roomId, String message) {
+        ChatRoom chatRoom = chatRoomManager.getChatRoom(roomId);
+        chatRoom.sendMessage(message);
+    }
+}
+
+// Main Class to Run the Application
+public class Main {
+    public static void main(String[] args) {
+        ChatAdapter chatAdapter = new ConsoleChatAdapter();
+
+        User alice = new User("Alice");
+        User bob = new User("Bob");
+
+        chatAdapter.connect("Room123", alice);
+        chatAdapter.connect("Room123", bob);
+
+        chatAdapter.sendMessage("Room123", "Alice: Hello, everyone!");
+        chatAdapter.sendMessage("Room123", "Bob: Hi, Alice!");
+    }
+}
